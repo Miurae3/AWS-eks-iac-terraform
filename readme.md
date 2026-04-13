@@ -1,17 +1,17 @@
-# README 1 — Projeto: Deploy de Aplicação no Amazon EKS com Exposição via Service LoadBalancer
+# README 1 — Projeto: Deploy de Aplicação no Amazon EKS com Provisionamento via Terraform e Exposição Pública
 
 ## 📌 Visão Geral
 
-Este projeto demonstra a criação de um cluster Kubernetes utilizando Amazon EKS e a exposição de uma aplicação para acesso público via Service do tipo LoadBalancer. O objetivo foi construir uma base prática e alinhada com arquitetura real de mercado, cobrindo desde a criação do cluster até a disponibilização da aplicação na internet.
+Este projeto demonstra a criação de uma infraestrutura completa Kubernetes na AWS utilizando Amazon EKS com provisionamento via Terraform e deploy de aplicação exposta publicamente utilizando Service do tipo LoadBalancer.
 
-A proposta do projeto foi validar conceitos essenciais de:
+O objetivo foi construir uma arquitetura realista baseada em práticas utilizadas em ambientes corporativos, cobrindo:
 
-* Provisionamento de cluster Kubernetes gerenciado
-* Configuração de acesso IAM + RBAC
-* Deploy de workloads
-* Exposição de serviços
-* Integração com Load Balancer da AWS
-* Troubleshooting comum em ambientes EKS
+* criação da infraestrutura com Terraform
+* provisionamento do cluster EKS
+* configuração de acesso IAM + RBAC
+* deploy de aplicação containerizada
+* exposição pública via LoadBalancer
+* troubleshooting de autenticação e networking
 
 ---
 
@@ -21,7 +21,7 @@ Fluxo da aplicação:
 
 Internet
 ↓
-AWS Load Balancer (provisionado automaticamente)
+AWS Load Balancer (provisionado automaticamente pelo Kubernetes)
 ↓
 Service (LoadBalancer)
 ↓
@@ -29,66 +29,114 @@ Deployment
 ↓
 Pods (NGINX)
 
-O Service do tipo LoadBalancer realiza integração automática com a AWS e provisiona um endpoint público.
+Provisionamento da infraestrutura:
+
+Terraform
+↓
+VPC
+↓
+Subnets públicas
+↓
+Security Groups
+↓
+IAM Roles
+↓
+EKS Cluster
+↓
+Node Group
 
 ---
 
 ## ⚙️ Tecnologias Utilizadas
 
+* Terraform
 * Amazon EKS
 * Kubernetes
 * kubectl
 * AWS CLI
 * IAM
 * VPC
-* EC2 Worker Nodes
-* NGINX (container de teste)
+* EC2 Managed Node Group
+* NGINX
+
+---
+
+## 📂 Estrutura do Projeto
+
+O projeto foi organizado seguindo separação lógica de responsabilidades:
+
+infraestrutura/
+→ criação da VPC
+→ subnets públicas
+→ security groups
+→ roles IAM
+
+cluster/
+→ criação do cluster EKS
+→ node group
+
+k8s/
+→ deployment nginx
+→ service LoadBalancer
+
+Essa separação facilita reutilização, manutenção e evolução da arquitetura.
 
 ---
 
 ## 🚀 Etapas Executadas no Projeto
 
-### 1️⃣ Criação do cluster EKS
+### 1️⃣ Provisionamento da infraestrutura base
 
-Foi criado um cluster Kubernetes gerenciado pela AWS com worker nodes configurados automaticamente.
+Utilizando Terraform foram criados:
 
-Principais recursos envolvidos:
+* VPC dedicada
+* subnets públicas
+* security groups
+* roles IAM
 
-* VPC
-* Subnets públicas
-* Security Groups
-* Node Group
-* IAM Roles
+Esses recursos formam a base necessária para execução do cluster EKS.
 
 ---
 
-### 2️⃣ Configuração de acesso ao cluster
+### 2️⃣ Criação do cluster EKS
 
-Após a criação do cluster, foi necessário ajustar o acesso RBAC utilizando o ConfigMap aws-auth.
+Cluster provisionado com:
+
+* endpoint público
+* managed node group
+* integração IAM
+
+Garantindo ambiente Kubernetes gerenciado pela AWS.
+
+---
+
+### 3️⃣ Configuração de acesso ao cluster
+
+Foi necessário configurar autorização Kubernetes via ConfigMap aws-auth.
 
 Esse passo permitiu:
 
 * acesso administrativo via kubectl
-* visualização dos workloads no console AWS
+* acesso ao console EKS Workloads
 * gerenciamento completo do cluster
 
 ---
 
-### 3️⃣ Deploy da aplicação NGINX
+### 4️⃣ Deploy da aplicação NGINX
 
-Foi criado um Deployment Kubernetes contendo pods com container NGINX:
+Deployment criado com:
 
 kubectl create deployment nginx-deployment --image=nginx
 
-Posteriormente validado com:
+Validação:
 
 kubectl get pods
 
 ---
 
-### 4️⃣ Exposição da aplicação via Service LoadBalancer
+### 5️⃣ Exposição pública da aplicação
 
-A aplicação foi exposta publicamente utilizando:
+Service criado com:
 
 kubectl expose deployment nginx-deployment 
 --type=LoadBalancer 
@@ -96,37 +144,38 @@ kubectl expose deployment nginx-deployment
 --target-port=80 
 --name=nginx-service
 
-Esse comando provisionou automaticamente:
+Provisionamento automático realizado:
 
-* AWS Elastic Load Balancer
+* Elastic Load Balancer
 * endpoint público
-* integração com networking do cluster
+* integração com networking AWS
 
-Permitindo acesso externo via navegador 🌐
+Aplicação acessível via internet.
 
 ---
 
-## 🔍 Validações Realizadas
+## 🔍 Troubleshooting Realizado
 
-Durante o projeto foram validados:
+Durante o projeto foram resolvidos cenários comuns de ambientes EKS:
 
-* funcionamento do cluster
-* comunicação entre pods
-* criação automática do Load Balancer
-* integração Kubernetes + AWS
-* acesso público externo
+* erro de acesso ao console Workloads
+* ajuste do aws-auth ConfigMap
+* validação RBAC
+* validação criação automática do LoadBalancer
+
+Esses cenários representam situações reais encontradas em projetos corporativos.
 
 ---
 
 ## 🧠 Principais Aprendizados
 
-Entre os principais aprendizados obtidos:
+Principais conceitos consolidados:
 
-* funcionamento da autenticação IAM no EKS
-* integração entre RBAC e aws-auth ConfigMap
-* arquitetura de exposição via Service LoadBalancer
-* troubleshooting de permissões
-* provisionamento automático de recursos AWS pelo Kubernetes
+* integração IAM + RBAC no EKS
+* arquitetura Service LoadBalancer
+* provisionamento automatizado via Terraform
+* integração Kubernetes com serviços AWS
+* debugging de permissões
 
 ---
 
@@ -134,16 +183,75 @@ Entre os principais aprendizados obtidos:
 
 Ao final do projeto foi possível:
 
+✔ Provisionar infraestrutura com Terraform
 ✔ Criar cluster EKS funcional
-✔ Realizar deploy de aplicação containerizada
+✔ Realizar deploy containerizado
 ✔ Expor aplicação publicamente
-✔ Validar integração entre Kubernetes e AWS
-✔ Estruturar arquitetura compatível com ambiente real
+✔ Validar integração Kubernetes + AWS
 
-Este projeto serve como base sólida para evoluções futuras como:
+Arquitetura pronta para evoluções futuras:
 
 * Ingress Controller
 * TLS com ACM
-* CI/CD
-* ExternalDNS
+* CI/CD automatizado
 * Observabilidade
+
+# README 2 — Post Técnico (Formato LinkedIn)
+
+## 🚀 Projeto prático: Deploy de aplicação no Amazon EKS com exposição pública
+
+Recentemente desenvolvi um projeto prático focado em Kubernetes na AWS utilizando Amazon EKS com provisionamento de infraestrutura via Terraform.
+
+O objetivo foi implementar o fluxo completo:
+
+infraestrutura → cluster → workload → exposição pública
+
+Durante o projeto trabalhei com:
+
+* criação de VPC via Terraform
+* provisionamento de cluster EKS
+* configuração IAM + RBAC
+* deploy de aplicação NGINX
+* exposição pública via Service LoadBalancer
+
+Arquitetura construída:
+
+Internet
+↓
+AWS Load Balancer
+↓
+Service (LoadBalancer)
+↓
+Deployment
+↓
+Pods
+
+Um dos principais aprendizados foi entender na prática a separação entre autenticação IAM e autorização RBAC dentro do EKS.
+
+Outro ponto importante foi validar como o Kubernetes consegue provisionar automaticamente recursos externos na AWS apenas com objetos declarativos.
+
+Principais desafios enfrentados:
+
+* ajuste do aws-auth ConfigMap
+* configuração RBAC
+* validação de acesso ao console EKS
+* entendimento do fluxo de exposição pública
+
+Resultado final:
+
+Aplicação containerizada publicada com sucesso utilizando LoadBalancer provisionado automaticamente pela AWS.
+
+Esse projeto reforçou conceitos fundamentais de:
+
+* Kubernetes networking
+* integração com cloud provider
+* provisionamento via Terraform
+
+Próximos passos naturais dessa arquitetura incluem:
+
+* Ingress Controller
+* TLS com ACM
+* pipeline CI/CD
+* observabilidade com métricas e logs
+
+Projetos como esse ajudam a consolidar experiência prática com arquitetura cloud-native utilizada em ambientes reais.
