@@ -75,27 +75,4 @@ eksctl utils associate-iam-oidc-provider \
 
 --- INgress -- 
 
-
-1 - nano ingress-nginx.yaml
-
-2 - apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: nginx-ingress
-  annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-spec:
-  ingressClassName: alb
-  rules:
-    - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: nginx-service
-                port:
-                  number: 80
-
-3 - 
+1 - kubectl apply -f k8s/nginx-ingress.yaml
