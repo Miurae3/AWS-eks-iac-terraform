@@ -42,8 +42,87 @@ cleanup-eni:
 	aws ec2 delete-network-interface --network-interface-id $$eni || true ; \
 	done ; fi
 
+cleanup-eip:
+	if [ ! -z "$(VPC_ID)" ]; then \
+	for eip in $$(aws ec2 describe-addresses \
+	--query 'Addresses[].AllocationId' \
+	--output text); do \
+	echo "Releasing EIP $$eip"; \
+	aws ec2 release-address --allocation-id $$eip || true ; \
+	done ; fi
+
+cleanup-elb:
+	for lb in $$(aws elbv2 describe-load-balancers \
+	--query 'LoadBalancers[].LoadBalancerArn' \
+	--output text); do \
+	echo "Deleting ELB $$lb"; \
+	aws elbv2 delete-load-balancer --load-balancer-arn $$lb || true ; \
+	done
+
+cleanup-elb-classic:
+	for lb in $$(aws elb describe-load-balancers \
+	--query 'LoadBalancerDescriptions[].LoadBalancerName' \
+	--output text); do \
+	echo "Deleting Classic ELB $$lb"; \
+	aws elb delete-load-balancer --load-balancer-name $$lb || true ; \
+	done
+
+cleanup-route-tables:
+	if [ ! -z "$(VPC_ID)" ]; then \
+	for rt in $$(aws ec2 describe-route-tables \
+	--filters Name=vpc-id,Values=$(VPC_ID) \
+	--query 'RouteTables[?Associations[?Main!=`true`]].RouteTableId' \
+	--output text); do \
+	echo "Deleting route table $$rt"; \
+	aws ec2 delete-route-table --route-table-id $$rt || true ; \
+	done ; fi
+
+cleanup-igw:
+	if [ ! -z "$(VPC_ID)" ]; then \
+	for igw in $$(aws ec2 describe-internet-gateways \
+	--filters Name=attachment.vpc-id,Values=$(VPC_ID) \
+	--query 'InternetGateways[].InternetGatewayId' \
+	--output text); do \
+	echo "Detaching IGW $$igw"; \
+	aws ec2 detach-internet-gateway \
+	--internet-gateway-id $$igw \
+	--vpc-id $(VPC_ID) || true ; \
+	echo "Deleting IGW $$igw"; \
+	aws ec2 delete-internet-gateway \
+	--internet-gateway-id $$igw || true ; \
+	done ; fi
+
+cleanup-k8s-sg:
+	if [ ! -z "$(VPC_ID)" ]; then \
+	for sg in $$(aws ec2 describe-security-groups \
+	--filters Name=vpc-id,Values=$(VPC_ID) \
+	--query 'SecurityGroups[?starts_with(GroupName, `k8s-`)].GroupId' \
+	--output text); do \
+	echo "Deleting k8s SG $$sg"; \
+	aws ec2 delete-security-group --group-id $$sg || true ; \
+	done ; fi
+
+k8s-config-apply:
+	aws eks update-kubeconfig \
+		--name miura-cluster \
+		--region sa-east-1 && \
+	kubectl get nodes && \
+	kubectl apply -f ../k8s/nginx-deployment.yaml && \
+	kubectl get pods
+
 
 destroy:
+	$(MAKE) cleanup-elb-classic TF_DIR=$(TF_DIR)
+	$(MAKE) cleanup-elb TF_DIR=$(TF_DIR)
+	$(MAKE) cleanup-eip TF_DIR=$(TF_DIR)
+	$(MAKE) cleanup-nat TF_DIR=$(TF_DIR)
+	$(MAKE) cleanup-endpoints TF_DIR=$(TF_DIR)
+	$(MAKE) cleanup-eni TF_DIR=$(TF_DIR)
+	$(MAKE) cleanup-security-groups TF_DIR=$(TF_DIR)
+	$(MAKE) cleanup-route-tables TF_DIR=$(TF_DIR)
+	$(MAKE) cleanup-igw TF_DIR=$(TF_DIR)
+	$(MAKE) cleanup-k8s-sg TF_DIR=$(TF_DIR)
+
 	cd $(TF_DIR) && terraform destroy -auto-approve
 
 
